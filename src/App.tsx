@@ -6,6 +6,8 @@ import {
   onClickDisplaySMA,
   onClickTrainModel,
   onClickPredict,
+  displayMacd,
+  onClickValidate,
 } from "./machinlearning";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
@@ -13,6 +15,8 @@ import HighchartsReact from "highcharts-react-official";
 function App() {
   const [rawPrices, setRawPrices] = useState<[number, number][]>([]);
   const [SMA, setSMA] = useState<[number, number][]>([]);
+  const [MACD, setMACD] = useState<number[]>([]);
+
   const [predictedPrice, setPredictedPrice] = useState<[number, number][]>([]);
   const [latestTrends, setLatestTrends] = useState<[number, number][]>([]);
   const [actualPrice, setActualPrice] = useState<[number, number][]>([]);
@@ -33,6 +37,10 @@ function App() {
 
   const onClickTrainHandler = async () => {
     onClickTrainModel();
+  };
+  const onClickDisplayMacdHandler = async () => {
+    const { Macd, actualPrices } = displayMacd();
+    setMACD(Macd);
   };
 
   const onClickPredictHandler = async () => {
@@ -67,15 +75,34 @@ function App() {
       },
     ],
   };
-
+  const macdOptions = {
+    title: {
+      text: "MACD and Price",
+    },
+    xAxis: { type: "datetime" },
+    series: [
+      {
+        data: MACD,
+      },
+      {
+        data: actualPrice,
+      },
+    ],
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column" }} className="App">
       <button onClick={onClickFetchDataHandler}>Fetch Data</button>
       <button onClick={onClickDisplaySMAHandler}>Display SMA</button>
+      <button onClick={onClickDisplayMacdHandler}>Display Macd</button>
+
       <button onClick={onClickTrainHandler}>Train</button>
       <button onClick={onClickPredictHandler}>Predict</button>
+      <button onClick={onClickValidate}>Predict</button>
+
       <HighchartsReact highcharts={Highcharts} options={options} />
       <HighchartsReact highcharts={Highcharts} options={smaOptions} />
+      <HighchartsReact highcharts={Highcharts} options={macdOptions} />
+
       <HighchartsReact
         highcharts={Highcharts}
         options={{

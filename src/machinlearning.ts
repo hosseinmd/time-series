@@ -1,6 +1,7 @@
 import * as tf from "@tensorflow/tfjs";
 import { makePredictions, trainModel } from "./model";
-
+//@ts-ignore
+import macd from "macd";
 let input_dataset = [];
 let result: {
   model: tf.Sequential;
@@ -12,21 +13,12 @@ let result: {
     labelMin: tf.Tensor<tf.Rank>;
   };
 };
+let Macd: any[];
 let data_raw: any[] = [];
 let sma_vec: any[] = [];
-let window_size = 50;
+let window_size = 10;
 let trainingsize = 70;
 let data_temporal_resolutions = "Weekly";
-
-// $(document).ready(function () {
-//   $("select").formSelect();
-// });
-
-// function onClickChangeDataFreq(freq: any) {
-//   console.log(freq.value);
-//   data_temporal_resolutions = freq.value;
-//   // $("#input_datafreq").text(freq);
-// }
 
 function onClickFetchData() {
   let ticker = "MSFT";
@@ -53,9 +45,7 @@ function onClickFetchData() {
 
       // let data = gotten_data_raw;
       // console.log(12, JSON.stringify(data))
-
       let message = "";
-      // $("#div_container_linegraph").show();
 
       let daily = [];
       if (data_temporal_resolutions == "Daily") {
@@ -81,6 +71,7 @@ function onClickFetchData() {
         }
 
         data_raw.reverse();
+        console.log(`data_raw`, data_raw);
 
         message =
           "Symbol: " + symbol + " (last refreshed " + last_refreshed + ")";
@@ -99,31 +90,14 @@ function onClickFetchData() {
             prices,
             data_raw,
           };
-
-          // let graph_plot = document.getElementById("div_linegraph_data");
-          // Plotly.newPlot(
-          //   graph_plot,
-          //   [{ x: timestamps, y: prices, name: "Stocks Prices" }],
-          //   { margin: { t: 0 } }
-          // );
         }
-
-        // $("#div_container_getsma").show();
-        // $("#div_container_getsmafirst").hide();
       } else {
-        // $("#div_linegraph_data").text(data["Information"]);
       }
       return {};
     });
 }
 
 function onClickDisplaySMA() {
-  // $("#btn_draw_sma").hide();
-  // $("#load_draw_sma").show();
-  // $("#div_container_sma").show();
-
-  window_size = window.innerWidth;
-
   sma_vec = ComputeSMA(data_raw, window_size);
 
   let timestamps_b = [...data_raw].splice(window_size, data_raw.length);
@@ -141,26 +115,20 @@ function onClickDisplaySMA() {
     sma,
     actualPrices,
   };
-  // let graph_plot = document.getElementById("div_linegraph_sma");
-  // Plotly.newPlot(
-  //   graph_plot,
-  //   [{ x: timestamps_a, y: prices, name: "Stock Price" }],
-  //   { margin: { t: 0 } }
-  // );
-  // Plotly.plot(graph_plot, [{ x: timestamps_b, y: sma, name: "SMA" }], {
-  //   margin: { t: 0 },
-  // });
-
-  // $("#div_linegraph_sma_title").text(
-  //   "Stock Price and Simple Moving Average (window: " + window_size + ")"
-  // );
-  // $("#btn_draw_sma").show();
-  // $("#load_draw_sma").hide();
-
-  // $("#div_container_train").show();
-  // $("#div_container_trainfirst").hide();
 }
-
+function displayMacd() {
+  Macd = macd(data_raw.slice(window_size).map((e) => e.price)).MACD;
+  let timestamps_b = [...data_raw].splice(window_size, data_raw.length);
+  Macd = Macd.map((e, i) => [
+    new Date(timestamps_b[i]["timestamp"]).getTime(),
+    e,
+  ]);
+  console.log(Macd);
+  let actualPrices: [number, number][] = data_raw.map(function (val) {
+    return [new Date(val["timestamp"]).getTime(), val["price"]];
+  });
+  return { Macd, actualPrices };
+}
 // function displayTrainingData() {
 //   let set = sma_vec.map(function (val) {
 //     return val["set"];
@@ -196,23 +164,24 @@ function onClickDisplaySMA() {
 
 async function onClickTrainModel() {
   let epoch_loss: any[] = [];
-
+  console.log(sma_vec);
   // $("#div_container_training").show();
   // $("#btn_draw_trainmodel").hide();
 
   // document.getElementById("div_traininglog").innerHTML = "";
 
   let inputs = sma_vec.map(function (inp_f) {
-    return inp_f["set"].map(function (val: any) {
+    return inp_f["set"].map(function (val: any, idx: number) {
       return val["price"];
     });
   });
+
   let outputs = sma_vec.map(function (outp_f) {
     return outp_f["avg"];
   });
 
-  trainingsize = 50;
-  let n_epochs = 100;
+  trainingsize = 99;
+  let n_epochs = 10;
   let learningrate = 0.01;
   let n_hiddenlayers = 1;
 
@@ -255,8 +224,8 @@ async function onClickTrainModel() {
     // );
   };
 
-  // console.log('train X', inputs)
-  // console.log('train Y', outputs)
+  console.log("train X", inputs);
+  console.log("train Y", outputs);
   result = await trainModel(
     inputs,
     outputs,
@@ -270,40 +239,26 @@ async function onClickTrainModel() {
   let logHtml = document.getElementById("div_traininglog")!.innerHTML;
   logHtml = "<div>Model train completed</div>" + logHtml;
   document.getElementById("div_traininglog")!.innerHTML = logHtml;
-
-  // $("#div_container_validate").show();
-  // $("#div_container_validatefirst").hide();
-  // $("#div_container_predict").show();
-  // $("#div_container_predictfirst").hide();
 }
 
 function onClickValidate() {
-  // $("#div_container_validating").show();
-  // $("#load_validating").show();
-  // $("#btn_validation").hide();
-
   let inputs = sma_vec.map(function (inp_f) {
     return inp_f["set"].map(function (val: any) {
       return val["price"];
     });
   });
 
-  // validate on training
   let val_train_x = inputs.slice(
     0,
     Math.floor((trainingsize / 100) * inputs.length)
   );
-  // let outputs = sma_vec.map(function(outp_f) { return outp_f['avg']; });
-  // let outps = outputs.slice(0, Math.floor(trainingsize / 100 * inputs.length));
-  // console.log('val_train_x', val_train_x)
+
   let val_train_y = makePredictions(
     val_train_x,
     result["model"],
     result["normalize"]
   );
-  // console.log('val_train_y', val_train_y)
 
-  // validate on unseen
   let val_unseen_x = inputs.slice(
     Math.floor((trainingsize / 100) * inputs.length),
     inputs.length
@@ -327,10 +282,7 @@ function onClickValidate() {
       window_size,
       data_raw.length -
         Math.floor(((100 - trainingsize) / 100) * data_raw.length)
-    ); //.splice(window_size, data_raw.length);
-  // let timestamps_c = data_raw.map(function (val) {
-  //   return val['timestamp'];
-  // }).splice(window_size + Math.floor(trainingsize / 100 * val_unseen_x.length), data_raw.length);
+    );
   let timestamps_c = data_raw
     .map(function (val) {
       return val["timestamp"];
@@ -348,7 +300,20 @@ function onClickValidate() {
   });
   sma = sma.slice(0, Math.floor((trainingsize / 100) * sma.length));
   // console.log('sma', sma)
-
+  console.log({
+    timestamps_a: { x: timestamps_a, y: prices, name: "Actual Price" },
+    timestamps_b: { x: timestamps_b, y: sma, name: "Training Label (SMA)" },
+    predictedTimestamps_b: {
+      x: timestamps_b,
+      y: val_train_y,
+      name: "Predicted (train)",
+    },
+    predictedTimestamps_c: {
+      x: timestamps_c,
+      y: val_unseen_y,
+      name: "Predicted (test)",
+    },
+  });
   return {
     timestamps_a: { x: timestamps_a, y: prices, name: "Actual Price" },
     timestamps_b: { x: timestamps_b, y: sma, name: "Training Label (SMA)" },
@@ -363,35 +328,9 @@ function onClickValidate() {
       name: "Predicted (test)",
     },
   };
-  // Plotly.newPlot(
-  //   graph_plot,
-  //   [{ x: timestamps_a, y: prices, name: "Actual Price" }],
-  //   { margin: { t: 0 } }
-  // );
-  // Plotly.plot(
-  //   graph_plot,
-  //   [{ x: timestamps_b, y: sma, name: "Training Label (SMA)" }],
-  //   { margin: { t: 0 } }
-  // );
-  // Plotly.plot(
-  //   graph_plot,
-  //   [{ x: timestamps_b, y: val_train_y, name: "Predicted (train)" }],
-  //   { margin: { t: 0 } }
-  // );
-  // Plotly.plot(
-  //   graph_plot,
-  //   [{ x: timestamps_c, y: val_unseen_y, name: "Predicted (test)" }],
-  //   { margin: { t: 0 } }
-  // );
-
-  // $("#load_validating").hide();
 }
 
 async function onClickPredict() {
-  // $("#div_container_predicting").show();
-  // $("#load_predicting").show();
-  // $("#btn_prediction").hide();
-
   let inputs = sma_vec.map(function (inp_f) {
     return inp_f["set"].map(function (val: any) {
       return val["price"];
@@ -485,6 +424,8 @@ export {
   onClickDisplaySMA,
   onClickTrainModel,
   onClickPredict,
+  displayMacd,
+  onClickValidate,
 };
 
 // data_raw = gotten_data_raw;
