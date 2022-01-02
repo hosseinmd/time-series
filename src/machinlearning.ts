@@ -17,11 +17,11 @@ let Macd: any[];
 let data_raw: any[] = [];
 let sma_vec: any[] = [];
 let window_size = 10;
-let trainingsize = 70;
+let trainingsize = 96;
 let data_temporal_resolutions = "Weekly";
-
+let pricesList: [number, number][];
 function onClickFetchData() {
-  let ticker = "MSFT";
+  let ticker = "T0P.FRK";
   let apikey = "DUMLE12T0SWDSOWT";
 
   // $("#btn_fetch_data").hide();
@@ -31,7 +31,7 @@ function onClickFetchData() {
   if (data_temporal_resolutions == "Daily") {
     requestUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&apikey=${apikey}`;
   } else {
-    requestUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}&apikey=${apikey}`;
+    requestUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}&apikey=${apikey}&outputsize=compact`;
     // "https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=" +
     // ticker +
     // "&apikey=" +
@@ -85,7 +85,7 @@ function onClickFetchData() {
           let prices: [number, number][] = data_raw.map(function (val) {
             return [new Date(val["timestamp"]).getTime(), val["price"]];
           });
-
+          pricesList = prices;
           return {
             prices,
             data_raw,
@@ -117,7 +117,7 @@ function onClickDisplaySMA() {
   };
 }
 function displayMacd() {
-  Macd = macd(data_raw.slice(window_size).map((e) => e.price)).MACD;
+  Macd = macd(data_raw.slice(window_size).map((e) => e.price)).signal;
   let timestamps_b = [...data_raw].splice(window_size, data_raw.length);
   Macd = Macd.map((e, i) => [
     new Date(timestamps_b[i]["timestamp"]).getTime(),
@@ -180,7 +180,6 @@ async function onClickTrainModel() {
     return outp_f["avg"];
   });
 
-  trainingsize = 99;
   let n_epochs = 10;
   let learningrate = 0.01;
   let n_hiddenlayers = 1;
@@ -271,9 +270,10 @@ function onClickValidate() {
   );
   // console.log('val_unseen_y', val_unseen_y)
 
-  let timestamps_a = data_raw.map(function (val) {
-    return val["timestamp"];
+  let timestamps_a = pricesList.map(function (val) {
+    return val[0];
   });
+  console.log(data_raw);
   let timestamps_b = data_raw
     .map(function (val) {
       return val["timestamp"];
@@ -295,9 +295,10 @@ function onClickValidate() {
   let sma = sma_vec.map(function (val) {
     return val["avg"];
   });
-  let prices = data_raw.map(function (val) {
-    return val["price"];
+  let prices = pricesList.map(function (val) {
+    return val[1];
   });
+
   sma = sma.slice(0, Math.floor((trainingsize / 100) * sma.length));
   // console.log('sma', sma)
   console.log({
