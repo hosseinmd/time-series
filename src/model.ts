@@ -1,4 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
+import { conv1d } from "@tensorflow/tfjs-layers/dist/exports_layers";
 
 export async function trainModel(
   X: any[],
@@ -19,7 +20,7 @@ export async function trainModel(
   const rnn_input_layer_features = 16;
   const rnn_input_layer_timesteps =
     input_layer_neurons / rnn_input_layer_features;
-  const rnn_input_shape = [rnn_input_layer_features, rnn_input_layer_timesteps]; // the shape have to match input layer's shape
+  const rnn_input_shape = [input_layer_neurons, 1]; // the shape have to match input layer's shape
   const rnn_output_neurons = 16; // number of neurons per LSTM's cell
 
   // output dense layer
@@ -32,35 +33,35 @@ export async function trainModel(
 
   // ## new: load data into tensor and normalize data
 
-  const inputTensor = tf.tensor2d(X, [X.length, X[0].length]);
+  const inputTensor = tf
+    .tensor2d(X, [X.length, X[0].length])
+    .reshape([X.length, X[0].length, 1]);
   const labelTensor = tf.tensor2d(Y, [Y.length, 1]).reshape([Y.length, 1]);
 
   const [xs, inputMax, inputMin] = normalizeTensorFit(inputTensor);
   const [ys, labelMax, labelMin] = normalizeTensorFit(labelTensor);
 
-  // ## define model
-
   const model = tf.sequential();
+  console.log(inputTensor.shape);
 
   model.add(
-    tf.layers.dense({
-      units: input_layer_neurons,
+    tf.layers.conv1d({
+      filters: 64,
+      kernelSize: 6,
+      inputShape: [10, 1],
+    })
+  );
+
+  model.add(
+    tf.layers.lstm({
+      units: 72,
+      activation: "relu",
+      returnSequences: true,
       inputShape: [input_layer_shape],
     })
   );
-  model.add(tf.layers.reshape({ targetShape: rnn_input_shape }));
-
-  let lstm_cells = [];
-  for (let index = 0; index < n_layers; index++) {
-    lstm_cells.push(tf.layers.lstmCell({ units: rnn_output_neurons }));
-  }
-
   model.add(
-    tf.layers.rnn({
-      cell: lstm_cells,
-      inputShape: rnn_input_shape,
-      returnSequences: false,
-    })
+    tf.layers.lstm({ units: 48, activation: "relu", returnSequences: false })
   );
 
   model.add(
@@ -72,9 +73,9 @@ export async function trainModel(
 
   model.compile({
     optimizer: tf.train.adam(learning_rate),
-    loss: "meanSquaredError",
+    loss: tf.losses.huberLoss,
   });
-
+  console.log(model.summary());
   // ## fit model
 
   const hist = await model.fit(xs, ys, {
@@ -105,9 +106,9 @@ export function makePredictions(
   model: { predict: (arg0: any) => any },
   dict_normalize: { [x: string]: any }
 ) {
-  // const predictedResults = model.predict(tf.tensor2d(X, [X.length, X[0].length]).div(tf.scalar(10))).mul(10); // old method
-
-  const X2d = tf.tensor2d(X, [X.length, X[0].length]);
+  const X2d = tf
+    .tensor2d(X, [X.length, X[0].length])
+    .reshape([X.length, X[0].length, 1]);
   const normalizedInput = normalizeTensor(
     X2d,
     dict_normalize["inputMax"],
