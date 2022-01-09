@@ -21,7 +21,7 @@ let trainingsize = 96;
 let data_temporal_resolutions = "Weekly";
 let pricesList: [number, number][];
 function onClickFetchData() {
-  let ticker = "T0P.FRK";
+  let ticker = "USD";
   let apikey = "DUMLE12T0SWDSOWT";
 
   // $("#btn_fetch_data").hide();
