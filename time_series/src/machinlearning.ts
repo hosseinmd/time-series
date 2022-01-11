@@ -2,7 +2,6 @@ import * as tf from "@tensorflow/tfjs";
 import { makePredictions, trainModel } from "./model";
 //@ts-ignore
 import macd from "macd";
-let input_dataset = [];
 let result: {
   model: tf.Sequential;
   stats: tf.History;
@@ -24,18 +23,11 @@ function onClickFetchData() {
   let ticker = "USD";
   let apikey = "DUMLE12T0SWDSOWT";
 
-  // $("#btn_fetch_data").hide();
-  // $("#load_fetch_data").show();
-
   let requestUrl = "";
   if (data_temporal_resolutions == "Daily") {
     requestUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&apikey=${apikey}`;
   } else {
     requestUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${ticker}&apikey=${apikey}&outputsize=compact`;
-    // "https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=" +
-    // ticker +
-    // "&apikey=" +
-    // apikey;
   }
 
   return fetch(requestUrl)
@@ -43,8 +35,6 @@ function onClickFetchData() {
     .then(function (data) {
       console.log({ data });
 
-      // let data = gotten_data_raw;
-      // console.log(12, JSON.stringify(data))
       let message = "";
 
       let daily = [];
@@ -76,9 +66,6 @@ function onClickFetchData() {
         message =
           "Symbol: " + symbol + " (last refreshed " + last_refreshed + ")";
 
-        // $("#btn_fetch_data").show();
-        // $("#load_fetch_data").hide();
-        // $("#div_linegraph_data_title").text();
         console.log({ message });
 
         if (data_raw.length > 0) {
@@ -111,7 +98,6 @@ function onClickDisplaySMA() {
   });
 
   return {
-    // output: displayTrainingData(),
     sma,
     actualPrices,
   };
@@ -129,46 +115,10 @@ function displayMacd() {
   });
   return { Macd, actualPrices };
 }
-// function displayTrainingData() {
-//   let set = sma_vec.map(function (val) {
-//     return val["set"];
-//   });
-//   let data_output = "";
-//   for (let index = 0; index < 25; index++) {
-//     data_output +=
-//       '<tr><td width="20px">' +
-//       (index + 1) +
-//       "</td><td>[" +
-//       set[index]
-//         .map(function (val: any) {
-//           return (Math.round(val["price"] * 10000) / 10000).toString();
-//         })
-//         .toString() +
-//       "]</td><td>" +
-//       sma_vec[index]["avg"] +
-//       "</td></tr>";
-//   }
-
-//   data_output =
-//     "<table class='striped'>" +
-//     "<thead><tr><th scope='col'>#</th>" +
-//     "<th scope='col'>Input (X)</th>" +
-//     "<th scope='col'>Label (Y)</th></thead>" +
-//     "<tbody>" +
-//     data_output +
-//     "</tbody>" +
-//     "</table>";
-
-//   return data_output;
-// }
 
 async function onClickTrainModel() {
   let epoch_loss: any[] = [];
   console.log(sma_vec);
-  // $("#div_container_training").show();
-  // $("#btn_draw_trainmodel").hide();
-
-  // document.getElementById("div_traininglog").innerHTML = "";
 
   let inputs = sma_vec.map(function (inp_f) {
     return inp_f["set"].map(function (val: any, idx: number) {
@@ -187,42 +137,6 @@ async function onClickTrainModel() {
   inputs = inputs.slice(0, Math.floor((trainingsize / 100) * inputs.length));
   outputs = outputs.slice(0, Math.floor((trainingsize / 100) * outputs.length));
 
-  let callback = function (epoch: any, log: any) {
-    let logHtml = document.getElementById("div_traininglog")!.innerHTML;
-    logHtml =
-      "<div>Epoch: " +
-      (epoch + 1) +
-      " (of " +
-      n_epochs +
-      ")" +
-      ", loss: " +
-      log.loss +
-      // ", difference: " + (epoch_loss[epoch_loss.length-1] - log.loss) +
-      "</div>" +
-      logHtml;
-
-    epoch_loss.push(log.loss);
-
-    document.getElementById("div_traininglog")!.innerHTML = logHtml;
-    document.getElementById("div_training_progressbar")!.style.width =
-      Math.ceil((epoch + 1) * (100 / n_epochs)).toString() + "%";
-    document.getElementById("div_training_progressbar")!.innerHTML =
-      Math.ceil((epoch + 1) * (100 / n_epochs)).toString() + "%";
-
-    // let graph_plot = document.getElementById("div_linegraph_trainloss");
-    // Plotly.newPlot(
-    //   graph_plot,
-    //   [
-    //     {
-    //       x: Array.from({ length: epoch_loss.length }, (v, k) => k + 1),
-    //       y: epoch_loss,
-    //       name: "Loss",
-    //     },
-    //   ],
-    //   { margin: { t: 0 } }
-    // );
-  };
-
   console.log("train X", inputs);
   console.log("train Y", outputs);
   result = await trainModel(
@@ -231,8 +145,7 @@ async function onClickTrainModel() {
     window_size,
     n_epochs,
     learningrate,
-    n_hiddenlayers,
-    callback
+    n_hiddenlayers
   );
 
   let logHtml = document.getElementById("div_traininglog")!.innerHTML;
@@ -372,23 +285,10 @@ async function onClickPredict() {
 
   console.log({ predictedPrice, pred_y, latestTrends });
 
-  // let graph_plot = document.getElementById("div_prediction_graph");
   return {
     latestTrends,
     predictedPrice,
   };
-  // Plotly.newPlot(
-  //   graph_plot,
-  //   [{ x: timestamps_d, y: pred_X[0], name: "Latest Trends" }],
-  //   { margin: { t: 0 } }
-  // );
-  // Plotly.plot(
-  //   graph_plot,
-  //   [{ x: timestamps_e, y: pred_y, name: "Predicted Price" }],
-  //   { margin: { t: 0 } }
-  // );
-
-  // $("#load_predicting").hide();
 }
 
 function ComputeSMA(data: any[], window_size: number) {
@@ -428,5 +328,3 @@ export {
   displayMacd,
   onClickValidate,
 };
-
-// data_raw = gotten_data_raw;
