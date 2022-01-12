@@ -1,5 +1,4 @@
 import * as tf from "@tensorflow/tfjs";
-import { conv1d } from "@tensorflow/tfjs-layers/dist/exports_layers";
 
 export async function trainModel(
   X: any[],
@@ -12,26 +11,12 @@ export async function trainModel(
 ) {
   const batch_size = 32;
 
-  // input dense layer
   const input_layer_shape = window_size;
-  const input_layer_neurons = 64;
 
-  // LSTM
-  const rnn_input_layer_features = 16;
-  const rnn_input_layer_timesteps =
-    input_layer_neurons / rnn_input_layer_features;
-  const rnn_input_shape = [input_layer_neurons, 1]; // the shape have to match input layer's shape
-  const rnn_output_neurons = 16; // number of neurons per LSTM's cell
+  const rnn_output_neurons = 16;
 
-  // output dense layer
-  const output_layer_shape = rnn_output_neurons; // dense layer input size is same as LSTM cell
-  const output_layer_neurons = 1; // return 1 value
-
-  // ## old method
-  // const xs = tf.tensor2d(X, [X.length, X[0].length])//.div(tf.scalar(10));
-  // const ys = tf.tensor2d(Y, [Y.length, 1]).reshape([Y.length, 1])//.div(tf.scalar(10));
-
-  // ## new: load data into tensor and normalize data
+  const output_layer_shape = rnn_output_neurons;
+  const output_layer_neurons = 1;
 
   const inputTensor = tf
     .tensor2d(X, [X.length, X[0].length])
@@ -88,7 +73,6 @@ export async function trainModel(
     },
   });
 
-  // return { model: model, stats: hist };
   return {
     model: model,
     stats: hist,
