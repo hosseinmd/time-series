@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from "react";
 import "./App.css";
 import {
@@ -130,6 +131,7 @@ function App() {
       },
     ],
   };
+
   return (
     <div style={{ display: "flex", flexDirection: "column" }} className="App">
       <button onClick={onClickFetchDataHandler}>Fetch Data</button>

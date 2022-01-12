@@ -1,4 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
+import * as tfvis from "@tensorflow/tfjs-vis";
 
 export async function trainModel(
   X: any[],
@@ -6,8 +7,7 @@ export async function trainModel(
   window_size: any,
   n_epochs: any,
   learning_rate: number | undefined,
-  n_layers: number,
-  callback: (arg0: number, arg1: tf.Logs | undefined) => void
+  n_layers: number
 ) {
   const batch_size = 32;
 
@@ -61,16 +61,15 @@ export async function trainModel(
     loss: tf.losses.huberLoss,
   });
   console.log(model.summary());
-  // ## fit model
 
   const hist = await model.fit(xs, ys, {
     batchSize: batch_size,
     epochs: n_epochs,
-    callbacks: {
-      onEpochEnd: async (epoch, log) => {
-        callback(epoch, log);
-      },
-    },
+    callbacks: tfvis.show.fitCallbacks(
+      { name: "model trainig results" },
+      ["loss"],
+      { height: 300, callbacks: ["onEpochEnd"] }
+    ),
   });
 
   return {
